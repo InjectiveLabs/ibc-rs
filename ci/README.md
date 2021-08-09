@@ -56,7 +56,7 @@ __Note__: This assumes you are running this the first time, if not, please ensur
 
 5. Run the command below to execute the relayer end to end (e2e) test. This command will execute the `e2e.sh` on the relayer container. The script will configure the light clients for both chains, add the private keys for both chains and run transactions on both chains (e.g. create-client transaction).
 
-    `docker exec relayer /bin/sh -c /relayer/e2e.sh`
+    `docker exec relayer /bin/sh -c /home/hermes/relayer/e2e.sh`
 
     If the script runs sucessfully you should see an output similar to this one:
 ```shell

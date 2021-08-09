@@ -1,19 +1,13 @@
 #####################################################
 ####                 Relayer image               ####
 #####################################################
-FROM ubuntu:20.04
-LABEL maintainer="hello@informal.systems"
+FROM xlab/hermes:latest
+LABEL maintainer="max@injectiveprotocol.com"
 
 ARG RELEASE
 
-# Add Python 3
-RUN apt-get update -y && apt-get install python3 python3-toml -y
-
-# Copy relayer executable
-COPY ./hermes /usr/bin/hermes
-
 # Relayer folder
-WORKDIR /relayer
+WORKDIR /home/hermes/relayer
 
 # Copy configuration file
 COPY ci/simple_config.toml .
@@ -25,12 +19,9 @@ COPY ci/e2e.sh .
 COPY e2e ./e2e
 
 # Copy key files
-COPY ci/chains/gaia/$RELEASE/ibc-0/user_seed.json  ./user_seed_ibc-0.json
-COPY ci/chains/gaia/$RELEASE/ibc-1/user_seed.json  ./user_seed_ibc-1.json
-COPY ci/chains/gaia/$RELEASE/ibc-0/user2_seed.json ./user2_seed_ibc-0.json
-COPY ci/chains/gaia/$RELEASE/ibc-1/user2_seed.json ./user2_seed_ibc-1.json
-
-# Make it executable
-RUN chmod +x e2e.sh
+COPY ci/chains/injective/$RELEASE/ibc-10/user_seed.json  ./user_seed_ibc-10.json
+COPY ci/chains/injective/$RELEASE/ibc-11/user_seed.json  ./user_seed_ibc-11.json
+COPY ci/chains/injective/$RELEASE/ibc-10/user2_seed.json ./user2_seed_ibc-10.json
+COPY ci/chains/injective/$RELEASE/ibc-11/user2_seed.json ./user2_seed_ibc-11.json
 
 ENTRYPOINT ["/bin/sh"]

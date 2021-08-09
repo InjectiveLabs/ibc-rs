@@ -1,21 +1,24 @@
-# informalsystems/hermes image
+# xlab/hermes image
 #
 # Used for running hermes in docker containers
 #
 # Usage:
-#   docker build . --build-arg TAG=v0.3.0 -t informalsystems/hermes:0.3.0 -f hermes.Dockerfile
+#   docker build . --build-arg TAG=v0.6.2-inj2 -t xlab/hermes:v0.6.2-inj2 -f hermes.Dockerfile
 
 FROM rust:1.52-buster AS build-env
 
 ARG TAG
 WORKDIR /root
 
-RUN git clone https://github.com/informalsystems/ibc-rs
+RUN git clone https://github.com/InjectiveLabs/ibc-rs
 RUN cd ibc-rs && git checkout $TAG && cargo build --release
 
 
 FROM debian:buster-slim
-LABEL maintainer="hello@informal.systems"
+LABEL maintainer="max@injectiveprotocol.com"
+
+# Add Python 3
+RUN apt-get update -y && apt-get install python3 python3-toml -y
 
 RUN useradd -m hermes -s /bin/bash
 WORKDIR /home/hermes

@@ -5,17 +5,17 @@
 ## Prerequisites: Log into Docker Hub
 set -eou pipefail
 
-## After updating the gaia version below, double-check the following (see readme.md also):
-##   - the new version made it to docker hub, and is available for download, e.g. `docker pull informaldev/ibc-1:v4.0.0`
+## After updating the injective version below, double-check the following (see readme.md also):
+##   - the new version made it to docker hub, and is available for download, e.g. `docker pull xlab/inj-ibc-1:v1.0.4-rc0`
 ##   - the image versions and the relayer release in `docker-compose.yml` are consistent with the new version
-GAIA_BRANCH="v4.2.0" # Requires a version with the `--keyring-backend` option. v2.1 and above.
+CORE_BRANCH="v1.0.4-rc0"
 
 BASE_DIR="$(dirname $0)"
 ONE_CHAIN="$BASE_DIR/../scripts/one-chain"
 
 echo "*** Building config folders"
 
-CHAIN_HOME="./chains/gaia/$GAIA_BRANCH"
+CHAIN_HOME="./chains/injective/$CORE_BRANCH"
 
 # Clean home dir if exists
 rm -Rf "$CHAIN_HOME"
@@ -25,35 +25,36 @@ mkdir -p "$CHAIN_HOME"
 
 ls -allh "$CHAIN_HOME"
 
-# Check gaia version
+# Check injective version
 echo "-------------------------------------------------------------------------------------------------------------------"
-echo "Gaiad version"
+echo "Injectived version"
 echo "-------------------------------------------------------------------------------------------------------------------"
-gaiad version --long  --log_level error
+injectived version --log-level error
 
 MONIKER=node_ibc_0
-CHAIN_ID=ibc-0
+CHAIN_ID=ibc-10
 CHAIN_IP=172.25.0.10
 RPC_PORT=26657
 GRPC_PORT=9090
-CHAIN_SAMOLEANS=100000000000
-"$ONE_CHAIN" gaiad "$CHAIN_ID" "$CHAIN_HOME" "$RPC_PORT" 26656 6060 "$GRPC_PORT" "$CHAIN_SAMOLEANS"
+CHAIN_INJ=100000000000
+"$ONE_CHAIN" injectived "$CHAIN_ID" "$CHAIN_HOME" "$RPC_PORT" 26656 6060 "$GRPC_PORT" "$CHAIN_INJ"
 
 MONIKER=node_ibc_1
-CHAIN_ID=ibc-1
+CHAIN_ID=ibc-11
 CHAIN_IP=172.25.0.11
 RPC_PORT=26657
 GRPC_PORT=9090
-CHAIN_SAMOLEANS=100000000000
-"$ONE_CHAIN" gaiad "$CHAIN_ID" "$CHAIN_HOME" "$RPC_PORT" 26656 6060 "$GRPC_PORT" "$CHAIN_SAMOLEANS"
+CHAIN_INJ=100000000000
+"$ONE_CHAIN" injectived "$CHAIN_ID" "$CHAIN_HOME" "$RPC_PORT" 26656 6060 "$GRPC_PORT" "$CHAIN_INJ"
 
 echo "*** Requirements"
 which docker
 
 echo "*** Create Docker image and upload to Docker Hub"
-docker build --build-arg CHAIN=gaia --build-arg RELEASE=$GAIA_BRANCH --build-arg NAME=ibc-0 -f --no-cache -t informaldev/ibc-0:$GAIA_BRANCH -f "$BASE_DIR/gaia.Dockerfile" .
-docker build --build-arg CHAIN=gaia --build-arg RELEASE=$GAIA_BRANCH --build-arg NAME=ibc-1 -f --no-cache -t informaldev/ibc-1:$GAIA_BRANCH -f "$BASE_DIR/gaia.Dockerfile" .
+export DOCKER_BUILDKIT=1
+docker build --ssh default --build-arg CHAIN=injective --build-arg RELEASE=$CORE_BRANCH --build-arg NAME=ibc-10 -f --no-cache -t xlab/inj-ibc-0:$CORE_BRANCH -f "$BASE_DIR/injective.Dockerfile" .
+docker build --ssh default --build-arg CHAIN=injective --build-arg RELEASE=$CORE_BRANCH --build-arg NAME=ibc-11 -f --no-cache -t xlab/inj-ibc-1:$CORE_BRANCH -f "$BASE_DIR/injective.Dockerfile" .
 
 read -p "Press ANY KEY to push image to Docker Hub, or CTRL-C to cancel. " dontcare
-docker push informaldev/ibc-0:$GAIA_BRANCH
-docker push informaldev/ibc-1:$GAIA_BRANCH
+docker push xlab/inj-ibc-0:$CORE_BRANCH
+docker push xlab/inj-ibc-1:$CORE_BRANCH

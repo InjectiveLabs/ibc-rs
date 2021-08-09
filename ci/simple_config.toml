@@ -4,29 +4,31 @@ log_level = 'info'
 clear_packets_interval = 100
 
 [[chains]]
-id = 'ibc-0'
+id = 'ibc-10'
 rpc_addr = 'http://ibc-0:26657'
 grpc_addr = 'http://ibc-0:9090'
 websocket_addr = 'ws://ibc-0:26657/websocket'
 rpc_timeout = '10s'
-account_prefix = 'cosmos'
+account_prefix = 'inj'
 key_name = 'testkey'
 store_prefix = 'ibc'
 max_gas = 400000
 gas_price = { price = 0.001, denom = 'stake' }
 clock_drift = '5s'
 trusting_period = '14days'
+is_ethermint = true
 
 [[chains]]
-id = 'ibc-1'
+id = 'ibc-11'
 rpc_addr = 'http://ibc-1:26657'
 grpc_addr = 'http://ibc-1:9090'
 websocket_addr = 'ws://ibc-1:26657/websocket'
 rpc_timeout = '10s'
-account_prefix = 'cosmos'
+account_prefix = 'inj'
 key_name = 'testkey'
 store_prefix = 'ibc'
 max_gas = 400000
 gas_price = { price = 0.001, denom = 'stake' }
 clock_drift = '5s'
 trusting_period = '14days'
+is_ethermint = true
