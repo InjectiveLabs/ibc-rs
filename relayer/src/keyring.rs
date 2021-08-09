@@ -16,6 +16,7 @@ use k256::ecdsa::{signature::Signer, Signature, SigningKey};
 use ripemd160::Ripemd160;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use tiny_keccak::{Hasher, Keccak};
 
 use errors::Error;
 pub use pub_key::EncodedPubKey;
@@ -301,8 +302,10 @@ impl KeyRing {
         // Get the public Key from the private key
         let public_key = ExtendedPubKey::from_private(&Secp256k1::new(), &private_key);
 
+        let is_eth = hd_path.coin_type() == 60;
+
         // Get address from the public Key
-        let address = get_address(public_key);
+        let address = get_address(public_key, is_eth);
 
         // Compute Bech32 account
         let account = bech32::encode(self.account_prefix(), address.to_base32(), Variant::Bech32)
@@ -354,7 +357,19 @@ fn private_key_from_mnemonic(
 }
 
 /// Return an address from a Public Key
-fn get_address(pk: ExtendedPubKey) -> Vec<u8> {
+fn get_address(pk: ExtendedPubKey, is_eth: bool) -> Vec<u8> {
+    if is_eth {
+        let public_key = pk.public_key.key.serialize_uncompressed();
+        debug_assert_eq!(public_key[0], 0x04);
+
+        let mut output = [0u8; 32];
+        let mut hasher = Keccak::v256();
+        hasher.update(&public_key[1..]);
+        hasher.finalize(&mut output);
+
+        return output[12..].to_vec();
+    }
+
     let mut hasher = Sha256::new();
     hasher.update(pk.public_key.to_bytes().as_slice());
 
