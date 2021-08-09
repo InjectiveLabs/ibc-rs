@@ -157,6 +157,9 @@ define_error! {
         BuildClientStateFailure
             |_| { "Failed to create client state" },
 
+        NoBaseAccountInResult
+            |_| { "Received no base account in query result" },
+
         CreateClient
             { client_id: String }
             |e| { format!("Failed to create client {0}", e.client_id) },

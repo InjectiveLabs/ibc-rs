@@ -41,14 +41,9 @@ impl Runnable for TxCreateClientCmd {
         let client = ForeignClient::restore(ClientId::default(), chains.dst, chains.src);
 
         // Trigger client creation via the "build" interface, so that we obtain the resulting event
-        let res: Result<IbcEvent, Error> = client
-            .build_create_client_and_send()
-            .map_err(Error::foreign_client);
+        let res: IbcEvent = client.build_create_client_and_send().unwrap();
 
-        match res {
-            Ok(receipt) => Output::success(receipt).exit(),
-            Err(e) => Output::error(format!("{}", e)).exit(),
-        }
+        Output::success(res).exit()
     }
 }
 
@@ -112,12 +107,9 @@ impl Runnable for TxUpdateClientCmd {
 
         let res = client
             .build_update_client_and_send(height, trusted_height)
-            .map_err(Error::foreign_client);
+            .unwrap();
 
-        match res {
-            Ok(events) => Output::success(events).exit(),
-            Err(e) => Output::error(format!("{}", e)).exit(),
-        }
+        Output::success(res).exit();
     }
 }
 
@@ -232,7 +224,7 @@ impl TxUpgradeClientsCmd {
         src_chain: Box<dyn ChainHandle>,
     ) -> Result<Vec<IbcEvent>, Error> {
         let client = ForeignClient::restore(client_id, dst_chain.clone(), src_chain.clone());
-        client.upgrade().map_err(Error::foreign_client)
+        client.upgrade().map_err(Error::foreign_client_upgrade)
     }
 }
 

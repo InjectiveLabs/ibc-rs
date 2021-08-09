@@ -49,7 +49,7 @@ use ibc::ics24_host::{ClientUpgradePath, Path, IBC_QUERY_PATH, SDK_UPGRADE_QUERY
 use ibc::query::{QueryTxHash, QueryTxRequest};
 use ibc::signer::Signer;
 use ibc::Height as ICSHeight;
-use ibc_proto::cosmos::auth::v1beta1::{BaseAccount, QueryAccountRequest};
+use ibc_proto::cosmos::auth::v1beta1::{BaseAccount, EthAccount, QueryAccountRequest};
 use ibc_proto::cosmos::base::tendermint::v1beta1::service_client::ServiceClient;
 use ibc_proto::cosmos::base::tendermint::v1beta1::GetNodeInfoRequest;
 use ibc_proto::cosmos::base::v1beta1::Coin;
@@ -519,16 +519,15 @@ impl CosmosSdkChain {
 
     fn account(&mut self) -> Result<&mut BaseAccount, Error> {
         if self.account == None {
-            let account = self.block_on(query_account(self, self.key()?.account))?;
+            if self.config.is_ethermint {
+                let account = self.block_on(query_eth_account(self, self.key()?.account))?;
 
-            debug!(
-                sequence = %account.sequence,
-                number = %account.account_number,
-                "[{}] send_tx: retrieved account",
-                self.id()
-            );
+                self.account = Some(account).unwrap().base_account;
+            } else {
+                let account = self.block_on(query_account(self, self.key()?.account))?;
 
-            self.account = Some(account);
+                self.account = Some(account);
+            }
         }
 
         Ok(self
@@ -551,10 +550,18 @@ impl CosmosSdkChain {
     }
 
     fn signer(&self, sequence: u64) -> Result<SignerInfo, Error> {
+        let pk_type;
+
+        if self.config.is_ethermint {
+            pk_type = "/injective.crypto.v1beta1.ethsecp256k1.PubKey".to_string();
+        } else {
+            pk_type = "/cosmos.crypto.secp256k1.PubKey".to_string();
+        }
+
         let (_key, pk_buf) = self.key_and_bytes()?;
         // Create a MsgSend proto Any message
         let pk_any = Any {
-            type_url: "/cosmos.crypto.secp256k1.PubKey".to_string(),
+            type_url: pk_type,
             value: pk_buf,
         };
 
@@ -1921,7 +1928,33 @@ async fn broadcast_tx_sync(chain: &CosmosSdkChain, data: Vec<u8>) -> Result<Resp
     Ok(response)
 }
 
-/// Uses the GRPC client to retrieve the account sequence
+/// Uses the GRPC client to retrieve EthAccount from ethermint-compatible chain
+async fn query_eth_account(chain: &CosmosSdkChain, address: String) -> Result<EthAccount, Error> {
+    let mut client = ibc_proto::cosmos::auth::v1beta1::query_client::QueryClient::connect(
+        chain.grpc_addr.clone(),
+    )
+    .await
+    .map_err(Error::grpc_transport)?;
+
+    let request = tonic::Request::new(QueryAccountRequest { address });
+
+    let response = client.account(request).await;
+
+    let eth_account = EthAccount::decode(
+        response
+            .map_err(Error::grpc_status)?
+            .into_inner()
+            .account
+            .unwrap()
+            .value
+            .as_slice(),
+    )
+    .map_err(|e| Error::protobuf_decode("EthAccount".to_string(), e))?;
+
+    Ok(eth_account)
+}
+
+/// Uses the GRPC client to retrieve the BaseAccount
 async fn query_account(chain: &CosmosSdkChain, address: String) -> Result<BaseAccount, Error> {
     let mut client = ibc_proto::cosmos::auth::v1beta1::query_client::QueryClient::connect(
         chain.grpc_addr.clone(),

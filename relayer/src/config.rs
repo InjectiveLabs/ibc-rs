@@ -271,6 +271,8 @@ pub struct ChainConfig {
     pub gas_price: GasPrice,
     #[serde(default)]
     pub packet_filter: PacketFilter,
+
+    pub is_ethermint: bool,
 }
 
 /// Attempt to load and parse the TOML config file as a `Config`.

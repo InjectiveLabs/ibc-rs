@@ -76,9 +76,9 @@ define_error! {
             [ ChannelError ]
             |_| { "channel error" },
 
-        ForeignClient
+        ForeignClientUpgrade
             [ ForeignClientError ]
-            |_| { "foreign client error" },
+            |_| { "foreign client upgrade error" },
 
         Supervisor
             [ SupervisorError ]
