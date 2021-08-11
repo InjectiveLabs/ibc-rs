@@ -7,7 +7,9 @@ use bech32::{ToBase32, Variant};
 use bip39::{Language, Mnemonic, Seed};
 use bitcoin::{
     network::constants::Network,
+    secp256k1::Message,
     secp256k1::Secp256k1,
+    secp256k1::SecretKey,
     util::bip32::{DerivationPath, ExtendedPrivKey, ExtendedPubKey},
 };
 use hdpath::StandardHDPath;
@@ -320,14 +322,25 @@ impl KeyRing {
     }
 
     /// Sign a message
-    pub fn sign_msg(&self, key_name: &str, msg: Vec<u8>) -> Result<Vec<u8>, Error> {
+    pub fn sign_msg(&self, key_name: &str, msg: Vec<u8>, is_eth: bool) -> Result<Vec<u8>, Error> {
         let key = self.get_key(key_name)?;
 
         let private_key_bytes = key.private_key.private_key.to_bytes();
+
+        if is_eth {
+            let hash = keccak256_hash(msg.as_slice());
+            let s = Secp256k1::signing_only();
+            let sign_msg = Message::from_slice(hash.as_slice()).unwrap();
+            let key = SecretKey::from_slice(private_key_bytes.as_slice()).unwrap();
+            let (_, sig_bytes) = s.sign_recoverable(&sign_msg, &key).serialize_compact();
+            return Ok(sig_bytes.to_vec());
+        }
+
         let signing_key =
             SigningKey::from_bytes(private_key_bytes.as_slice()).map_err(Error::invalid_key)?;
 
         let signature: Signature = signing_key.sign(&msg);
+
         Ok(signature.as_ref().to_vec())
     }
 
@@ -337,6 +350,14 @@ impl KeyRing {
             KeyRing::Test(d) => &d.account_prefix,
         }
     }
+}
+
+fn keccak256_hash(bytes: &[u8]) -> Vec<u8> {
+    let mut hasher = Keccak::v256();
+    hasher.update(bytes);
+    let mut resp: [u8; 32] = Default::default();
+    hasher.finalize(&mut resp);
+    resp.iter().cloned().collect()
 }
 
 /// Decode an extended private key from a mnemonic
@@ -362,11 +383,7 @@ fn get_address(pk: ExtendedPubKey, is_eth: bool) -> Vec<u8> {
         let public_key = pk.public_key.key.serialize_uncompressed();
         debug_assert_eq!(public_key[0], 0x04);
 
-        let mut output = [0u8; 32];
-        let mut hasher = Keccak::v256();
-        hasher.update(&public_key[1..]);
-        hasher.finalize(&mut output);
-
+        let output = keccak256_hash(&public_key[1..]);
         return output[12..].to_vec();
     }
 

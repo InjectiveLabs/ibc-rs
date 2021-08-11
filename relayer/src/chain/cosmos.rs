@@ -559,6 +559,7 @@ impl CosmosSdkChain {
         }
 
         let (_key, pk_buf) = self.key_and_bytes()?;
+
         // Create a MsgSend proto Any message
         let pk_any = Any {
             type_url: pk_type,
@@ -614,7 +615,7 @@ impl CosmosSdkChain {
         // Sign doc
         let signed = self
             .keybase
-            .sign_msg(&self.config.key_name, signdoc_buf)
+            .sign_msg(&self.config.key_name, signdoc_buf, self.config.is_ethermint)
             .map_err(Error::key_base)?;
 
         Ok(signed)
