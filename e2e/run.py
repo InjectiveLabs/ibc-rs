@@ -24,11 +24,11 @@ def passive_packets(
 
     # hermes tx raw ft-transfer ibc-1 ibc-0 transfer channel-0 10000 1000 -n 2
     packet.packet_send(c, src=ibc0, dst=ibc1, src_port=port_id,
-                       src_channel=ibc0_channel_id, amount=10000, height_offset=1000, number_msgs=2)
+                       src_channel=ibc0_channel_id, amount=10000, denom="inj", height_offset=1000, number_msgs=2)
 
     # hermes tx raw ft-transfer ibc-0 ibc-1 transfer channel-1 10000 1000 -n 2
     packet.packet_send(c, src=ibc1, dst=ibc0, src_port=port_id,
-                       src_channel=ibc1_channel_id, amount=10000, height_offset=1000, number_msgs=2)
+                       src_channel=ibc1_channel_id, amount=10000, denom="inj", height_offset=1000, number_msgs=2)
     sleep(5.0)
 
     # hermes tx raw packet-recv ibc-1 ibc-0 transfer channel-0
@@ -43,11 +43,11 @@ def passive_packets(
 
     # hermes tx raw ft-transfer ibc-0 ibc-1 transfer channel-1 10000 1000 -n 3
     packet.packet_send(c, src=ibc1, dst=ibc0, src_port=port_id,
-                       src_channel=ibc1_channel_id, amount=10000, height_offset=1000, number_msgs=3)
+                       src_channel=ibc1_channel_id, amount=10000, denom="inj", height_offset=1000, number_msgs=3)
 
     # hermes tx raw ft-transfer ibc-1 ibc-0 transfer channel-0 10000 1000 -n 4
     packet.packet_send(c, src=ibc0, dst=ibc1, src_port=port_id,
-                       src_channel=ibc0_channel_id, amount=10000, height_offset=1000, number_msgs=4)
+                       src_channel=ibc0_channel_id, amount=10000, denom="inj", height_offset=1000, number_msgs=4)
 
     sleep(10.0)
 
@@ -115,11 +115,11 @@ def passive_packets(
     # 7. send some packets
     # hermes tx raw ft-transfer ibc-0 ibc-1 transfer channel-1 10000 1000 -n 3
     packet.packet_send(c, src=ibc1, dst=ibc0, src_port=port_id,
-                       src_channel=ibc1_channel_id, amount=10000, height_offset=1000, number_msgs=3)
+                       src_channel=ibc1_channel_id, amount=10000, denom="inj", height_offset=1000, number_msgs=3)
 
     # hermes tx raw ft-transfer ibc-1 ibc-0 transfer channel-0 10000 1000 -n 4
     packet.packet_send(c, src=ibc0, dst=ibc1, src_port=port_id,
-                       src_channel=ibc0_channel_id, amount=10000, height_offset=1000, number_msgs=4)
+                       src_channel=ibc0_channel_id, amount=10000, denom="inj", height_offset=1000, number_msgs=4)
 
     sleep(20.0)
 

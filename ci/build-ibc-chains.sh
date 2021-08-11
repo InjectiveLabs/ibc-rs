@@ -6,9 +6,9 @@
 set -eou pipefail
 
 ## After updating the injective version below, double-check the following (see readme.md also):
-##   - the new version made it to docker hub, and is available for download, e.g. `docker pull xlab/inj-ibc-1:v1.0.4-rc0`
+##   - the new version made it to docker hub, and is available for download, e.g. `docker pull xlab/inj-ibc-1:v1.0.4-rc1`
 ##   - the image versions and the relayer release in `docker-compose.yml` are consistent with the new version
-CORE_BRANCH="v1.0.4-rc0"
+CORE_BRANCH="v1.0.4-rc1"
 
 BASE_DIR="$(dirname $0)"
 ONE_CHAIN="$BASE_DIR/../scripts/one-chain"

@@ -3,7 +3,7 @@
 # Used for running hermes in docker containers
 #
 # Usage:
-#   docker build . --build-arg TAG=v0.6.2-inj2 -t xlab/hermes:v0.6.2-inj2 -f hermes.Dockerfile
+#   docker build . --build-arg TAG=v0.6.2-inj4 -t xlab/hermes:v0.6.2-inj4 -f hermes.Dockerfile
 
 FROM rust:1.52-buster AS build-env
 

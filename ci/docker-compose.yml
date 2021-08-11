@@ -4,26 +4,20 @@ services:
 
   ibc-0:
     container_name: ibc-0
-    image: "xlab/inj-ibc-0:v1.0.4-rc0"
+    image: "xlab/inj-ibc-0:v1.0.4-rc1"
     stdin_open: true
     tty: true
     entrypoint: "injectived start --home=/chain/injective --grpc.address=ibc-0:9090  --pruning=nothing"
-    ports:
-      - "36657:26657"
-      - "19090:9090"
     networks:
       relaynet:
         ipv4_address: 172.25.0.10
 
   ibc-1:
     container_name: ibc-1
-    image: "xlab/inj-ibc-1:v1.0.4-rc0"
+    image: "xlab/inj-ibc-1:v1.0.4-rc1"
     stdin_open: true
     tty: true
     entrypoint: "injectived start --home=/chain/injective --grpc.address=ibc-1:9090 --pruning=nothing"
-    ports:
-      - "46657:26657"
-      - "29090:9090"
     networks:
       relaynet:
         ipv4_address: 172.25.0.11
@@ -39,7 +33,7 @@ services:
       context: ../
       dockerfile: ci/relayer.Dockerfile
       args:
-        RELEASE: v1.0.4-rc0
+        RELEASE: v1.0.4-rc1
     environment:
       - CHAIN_A=ibc-10
       - CHAIN_A_HOME=/home/hermes/data/ibc-10
@@ -49,7 +43,7 @@ services:
       - CHAIN_B_PORT=26657
       - CONFIG=simple_config.toml
       - RELAYER_DIR=/home/hermes/relayer
-      - RELEASE=v1.0.4-rc0
+      - RELEASE=v1.0.4-rc1
     networks:
       relaynet:
         ipv4_address: 172.25.0.12
