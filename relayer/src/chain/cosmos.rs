@@ -13,7 +13,7 @@ use bitcoin::hashes::hex::ToHex;
 use itertools::Itertools;
 use prost::Message;
 use prost_types::Any;
-use tendermint::abci::Path as TendermintABCIPath;
+use tendermint::abci::{Event, Path as TendermintABCIPath};
 use tendermint::account::Id as AccountId;
 use tendermint::block::Height;
 use tendermint::consensus::Params;
@@ -26,7 +26,7 @@ use tokio::runtime::Runtime as TokioRuntime;
 use tonic::codegen::http::Uri;
 use tracing::{debug, trace, warn};
 
-use ibc::downcast;
+use ibc::{downcast, events::IbcEventType, query::QueryBlockRequest};
 use ibc::events::{from_tx_response_event, IbcEvent};
 use ibc::ics02_client::client_consensus::{
     AnyConsensusState, AnyConsensusStateWithHeight, QueryClientEventRequest,
@@ -346,6 +346,8 @@ impl CosmosSdkChain {
                 sr.gas_info.map_or(self.max_gas(), |g| g.gas_used)
             });
 
+        println!("estimated_gas - {}, self.max_gas() - {}", estimated_gas, self.max_gas());
+
         if estimated_gas > self.max_gas() {
             return Err(Error::tx_simulate_gas_estimate_exceeded(
                 self.id().clone(),
@@ -518,7 +520,7 @@ impl CosmosSdkChain {
     }
 
     fn account(&mut self) -> Result<&mut BaseAccount, Error> {
-        if self.account == None {
+        if self.account == None {        
             if self.config.is_ethermint {
                 let account = self.block_on(query_eth_account(self, self.key()?.account))?;
 
@@ -551,7 +553,7 @@ impl CosmosSdkChain {
 
     fn signer(&self, sequence: u64) -> Result<SignerInfo, Error> {
         let pk_type;
-
+        
         if self.config.is_ethermint {
             pk_type = "/injective.crypto.v1beta1.ethsecp256k1.PubKey".to_string();
         } else {
@@ -741,13 +743,13 @@ impl Chain for CosmosSdkChain {
         use tendermint_light_client::types::PeerId;
 
         crate::time!("init_light_client");
-
+        
         let peer_id: PeerId = self
             .rt
             .block_on(self.rpc_client.status())
             .map(|s| s.node_info.id)
             .map_err(|e| Error::rpc(self.config.rpc_addr.clone(), e))?;
-
+        
         let light_client = TmLightClient::from_config(&self.config, peer_id)?;
 
         Ok(Box::new(light_client))
@@ -797,7 +799,7 @@ impl Chain for CosmosSdkChain {
     /// then it returns error.
     /// TODO - more work is required here for a smarter split maybe iteratively accumulating/ evaluating
     /// msgs in a Tx until any of the max size, max num msgs, max fee are exceeded.
-    fn send_msgs(&mut self, proto_msgs: Vec<Any>) -> Result<Vec<IbcEvent>, Error> {
+    fn send_msgs(&mut self, proto_msgs: Vec<Any>) -> Result<Vec<IbcEvent>, Error> {        
         crate::time!("send_msgs");
 
         if proto_msgs.is_empty() {
@@ -808,8 +810,9 @@ impl Chain for CosmosSdkChain {
         let mut n = 0;
         let mut size = 0;
         let mut msg_batch = vec![];
-        for msg in proto_msgs.iter() {
+        for msg in proto_msgs.iter() {            
             msg_batch.push(msg.clone());
+
             let mut buf = Vec::new();
             prost::Message::encode(msg, &mut buf).unwrap();
             n += 1;
@@ -1565,6 +1568,38 @@ impl Chain for CosmosSdkChain {
         }
     }
 
+    fn query_block(&self, request: QueryBlockRequest) -> Result<Vec<IbcEvent>, Error> {
+        crate::time!("query_block");
+
+        match request {
+            QueryBlockRequest::Packet(request) => {
+                crate::time!("query_block: query block packet events");
+
+                let mut result: Vec<IbcEvent> = vec![];
+
+                let response = self
+                    .block_on(self.rpc_client.block_results(tendermint::block::Height::try_from(request.height.revision_height).unwrap()))
+                    .map_err(|e| Error::rpc(self.config.rpc_addr.clone(), e))?;
+
+                if let Some(begin_block_events) = response.begin_block_events {
+                    let evs = packet_from_block_result_events(begin_block_events,&request);
+                    if !evs.is_empty() {
+                        result.extend_from_slice(evs.as_slice());
+                    }
+                }
+
+                if let Some(end_block_events) = response.end_block_events {
+                    let evs = packet_from_block_result_events(end_block_events,&request);
+                    if !evs.is_empty() {
+                        result.extend_from_slice(evs.as_slice());
+                    }
+                }
+
+                Ok(result)
+            }
+        }
+    }
+
     fn proven_client_state(
         &self,
         client_id: &ClientId,
@@ -1817,6 +1852,40 @@ fn packet_from_tx_search_response(
             })
         })
 }
+
+//
+// Extract the packet events from the block_results (begin_block / end_block) events
+//
+fn packet_from_block_result_events(
+    events : Vec<Event>,
+    request: &QueryPacketEventDataRequest,
+ ) -> Vec<IbcEvent> {
+     if events.is_empty() {
+         return Vec::new();
+     }
+ 
+     let sequence : &Vec<Sequence> = &request.sequences;
+ 
+     let mut result: Vec<IbcEvent> = Vec::with_capacity(events.len());
+     for event in events {
+         if event.type_str == IbcEventType::SendPacket.as_str() {
+             if let Some(ibc_event) = ChannelEvents::try_from_tx(&event) {
+                 if let IbcEvent::SendPacket(send_packet) = ibc_event.clone() {
+                     let packet = send_packet.packet;
+                     if packet.source_port == request.source_port_id
+                         && packet.source_channel == request.source_channel_id
+                         && packet.destination_port == request.destination_port_id
+                         && packet.destination_channel == request.destination_channel_id
+                         && sequence.contains(&packet.sequence) {
+                         result.push(ibc_event)
+                     }
+                 }
+             }
+         }
+     }
+ 
+     result
+ }
 
 // Extracts from the Tx the update client event for the requested client and height.
 // Note: in the Tx, there may have been multiple events, some of them may be
