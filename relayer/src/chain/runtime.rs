@@ -24,7 +24,7 @@ use ibc::{
     ics23_commitment::commitment::CommitmentPrefix,
     ics24_host::identifier::{ChannelId, ClientId, ConnectionId, PortId},
     proofs::Proofs,
-    query::QueryTxRequest,
+    query::{QueryBlockRequest, QueryTxRequest},
     signer::Signer,
     Height,
 };
@@ -336,8 +336,12 @@ impl<C: Chain + Send + 'static> ChainRuntime<C> {
                             self.query_next_sequence_receive(request, reply_to)?
                         },
 
-                        Ok(ChainRequest::QueryPacketEventData { request, reply_to }) => {
+                        Ok(ChainRequest::QueryPacketEventDataFromTx { request, reply_to }) => {
                             self.query_txs(request, reply_to)?
+                        },
+
+                        Ok(ChainRequest::QueryPacketEventDataFromBlock { request, reply_to }) => {
+                            self.query_block(request, reply_to)?
                         },
 
                         Err(e) => error!("received error via chain request channel: {}", e),
@@ -837,6 +841,18 @@ impl<C: Chain + Send + 'static> ChainRuntime<C> {
         reply_to: ReplyTo<Vec<IbcEvent>>,
     ) -> Result<(), Error> {
         let result = self.chain.query_txs(request);
+
+        reply_to.send(result).map_err(Error::send)?;
+
+        Ok(())
+    }
+
+    fn query_block(
+        &self,
+        request: QueryBlockRequest,
+        reply_to: ReplyTo<Vec<IbcEvent>>,
+    ) -> Result<(), Error> {
+        let result = self.chain.query_block(request);
 
         reply_to.send(result).map_err(Error::send)?;
 

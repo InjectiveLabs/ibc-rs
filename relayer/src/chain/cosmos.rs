@@ -13,7 +13,7 @@ use bitcoin::hashes::hex::ToHex;
 use itertools::Itertools;
 use prost::Message;
 use prost_types::Any;
-use tendermint::abci::Path as TendermintABCIPath;
+use tendermint::abci::{Event, Path as TendermintABCIPath};
 use tendermint::account::Id as AccountId;
 use tendermint::block::Height;
 use tendermint::consensus::Params;
@@ -26,7 +26,7 @@ use tokio::runtime::Runtime as TokioRuntime;
 use tonic::codegen::http::Uri;
 use tracing::{debug, trace, warn};
 
-use ibc::downcast;
+use ibc::{downcast, events::IbcEventType, query::QueryBlockRequest};
 use ibc::events::{from_tx_response_event, IbcEvent};
 use ibc::ics02_client::client_consensus::{
     AnyConsensusState, AnyConsensusStateWithHeight, QueryClientEventRequest,
@@ -550,8 +550,7 @@ impl CosmosSdkChain {
     }
 
     fn signer(&self, sequence: u64) -> Result<SignerInfo, Error> {
-        let pk_type;
-
+        let pk_type;        
         if self.config.is_ethermint {
             pk_type = "/injective.crypto.v1beta1.ethsecp256k1.PubKey".to_string();
         } else {
@@ -740,8 +739,7 @@ impl Chain for CosmosSdkChain {
     fn init_light_client(&self) -> Result<Box<dyn LightClient<Self>>, Error> {
         use tendermint_light_client::types::PeerId;
 
-        crate::time!("init_light_client");
-
+        crate::time!("init_light_client");        
         let peer_id: PeerId = self
             .rt
             .block_on(self.rpc_client.status())
@@ -808,8 +806,9 @@ impl Chain for CosmosSdkChain {
         let mut n = 0;
         let mut size = 0;
         let mut msg_batch = vec![];
-        for msg in proto_msgs.iter() {
+        for msg in proto_msgs.iter() {  
             msg_batch.push(msg.clone());
+
             let mut buf = Vec::new();
             prost::Message::encode(msg, &mut buf).unwrap();
             n += 1;
@@ -1565,6 +1564,38 @@ impl Chain for CosmosSdkChain {
         }
     }
 
+    fn query_block(&self, request: QueryBlockRequest) -> Result<Vec<IbcEvent>, Error> {
+        crate::time!("query_block");
+
+        match request {
+            QueryBlockRequest::Packet(request) => {
+                crate::time!("query_block: query block packet events");
+
+                let mut result: Vec<IbcEvent> = vec![];
+
+                let response = self
+                    .block_on(self.rpc_client.block_results(tendermint::block::Height::try_from(request.height.revision_height).unwrap()))
+                    .map_err(|e| Error::rpc(self.config.rpc_addr.clone(), e))?;
+
+                if let Some(begin_block_events) = response.begin_block_events {
+                    let evs = packet_from_block_result_events(begin_block_events,&request);
+                    if !evs.is_empty() {
+                        result.extend_from_slice(evs.as_slice());
+                    }
+                }
+
+                if let Some(end_block_events) = response.end_block_events {
+                    let evs = packet_from_block_result_events(end_block_events,&request);
+                    if !evs.is_empty() {
+                        result.extend_from_slice(evs.as_slice());
+                    }
+                }
+
+                Ok(result)
+            }
+        }
+    }
+
     fn proven_client_state(
         &self,
         client_id: &ClientId,
@@ -1817,6 +1848,40 @@ fn packet_from_tx_search_response(
             })
         })
 }
+
+//
+// Extract the packet events from the block_results (begin_block / end_block) events
+//
+fn packet_from_block_result_events(
+    events : Vec<Event>,
+    request: &QueryPacketEventDataRequest,
+ ) -> Vec<IbcEvent> {
+     if events.is_empty() {
+         return Vec::new();
+     }
+ 
+     let sequence : &Vec<Sequence> = &request.sequences;
+ 
+     let mut result: Vec<IbcEvent> = Vec::with_capacity(events.len());
+     for event in events {
+         if event.type_str == IbcEventType::SendPacket.as_str() {
+             if let Some(ibc_event) = ChannelEvents::try_from_tx(&event) {
+                 if let IbcEvent::SendPacket(send_packet) = ibc_event.clone() {
+                     let packet = send_packet.packet;
+                     if packet.source_port == request.source_port_id
+                         && packet.source_channel == request.source_channel_id
+                         && packet.destination_port == request.destination_port_id
+                         && packet.destination_channel == request.destination_channel_id
+                         && sequence.contains(&packet.sequence) {
+                         result.push(ibc_event)
+                     }
+                 }
+             }
+         }
+     }
+ 
+     result
+ }
 
 // Extracts from the Tx the update client event for the requested client and height.
 // Note: in the Tx, there may have been multiple events, some of them may be

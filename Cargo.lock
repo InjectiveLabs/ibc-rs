@@ -2990,8 +2990,7 @@ dependencies = [
 [[package]]
 name = "tendermint"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0752808f59b612916614e92e43be64e9ba566b762a266bcfcf7dce1b324e9319"
+source = "git+https://github.com/lyqingye/tendermint-rs?branch=master#c4518ef4df313c28cbeed3e076bd2ce4ef009cba"
 dependencies = [
  "anomaly",
  "async-trait",
@@ -3000,10 +2999,12 @@ dependencies = [
  "ed25519",
  "ed25519-dalek",
  "futures",
+ "k256",
  "num-traits",
  "once_cell",
  "prost",
  "prost-types",
+ "ripemd160",
  "serde",
  "serde_bytes",
  "serde_json",
@@ -3022,8 +3023,7 @@ dependencies = [
 [[package]]
 name = "tendermint-light-client"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63ac4ac7140f46cfc0be39227c7e307779d341c0f68cf11e595e7b3176a5a771"
+source = "git+https://github.com/lyqingye/tendermint-rs?branch=master#c4518ef4df313c28cbeed3e076bd2ce4ef009cba"
 dependencies = [
  "anomaly",
  "contracts",
@@ -3044,8 +3044,7 @@ dependencies = [
 [[package]]
 name = "tendermint-proto"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfd0371c6b0c7fc4f6b053b8a1bc868a2a47c49a1408c4cd6f595d9f3bd3c238"
+source = "git+https://github.com/lyqingye/tendermint-rs?branch=master#c4518ef4df313c28cbeed3e076bd2ce4ef009cba"
 dependencies = [
  "anomaly",
  "bytes",
@@ -3063,8 +3062,7 @@ dependencies = [
 [[package]]
 name = "tendermint-rpc"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0fa8d172e3129802d28de980531993dd25cc01841c5bc8fe4a87c7750a7f222"
+source = "git+https://github.com/lyqingye/tendermint-rs?branch=master#c4518ef4df313c28cbeed3e076bd2ce4ef009cba"
 dependencies = [
  "async-trait",
  "async-tungstenite",
@@ -3094,8 +3092,7 @@ dependencies = [
 [[package]]
 name = "tendermint-testgen"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1451e554ad7f6f69a366ce85f1cbb722290416e1e6287f38937c094a07d8d47"
+source = "git+https://github.com/lyqingye/tendermint-rs?branch=master#c4518ef4df313c28cbeed3e076bd2ce4ef009cba"
 dependencies = [
  "ed25519-dalek",
  "gumdrop 0.8.0",

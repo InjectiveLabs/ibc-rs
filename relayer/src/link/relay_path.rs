@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::time::Instant;
 use std::{fmt, thread};
 
+use ibc::query::QueryBlockRequest;
 use itertools::Itertools;
 use prost_types::Any;
 use tracing::{debug, error, info, trace};
@@ -806,7 +807,7 @@ impl RelayPath {
             sequences.iter().take(10).join(", "), sequences.len()
         );
 
-        let query = QueryTxRequest::Packet(QueryPacketEventDataRequest {
+        let query = QueryPacketEventDataRequest {
             event_id: IbcEventType::SendPacket,
             source_port_id: self.src_port_id().clone(),
             source_channel_id: src_channel_id.clone(),
@@ -814,12 +815,25 @@ impl RelayPath {
             destination_channel_id: self.dst_channel_id()?.clone(),
             sequences,
             height: query_height,
-        });
+        };
 
-        events_result = self
+        let events_result_from_tx = self
             .src_chain()
-            .query_txs(query)
+            .query_txs(QueryTxRequest::Packet(query.clone()))
             .map_err(LinkError::relayer)?;
+
+        let events_result_from_block = self
+            .src_chain()
+            .query_block(QueryBlockRequest::Packet(query.clone()))
+            .map_err(LinkError::relayer)?;
+
+        if !events_result_from_tx.is_empty() {
+            events_result.extend(events_result_from_tx);
+        }
+
+        if !events_result_from_block.is_empty() {
+            events_result.extend(events_result_from_block);
+        }
 
         let mut packet_sequences = vec![];
         for event in events_result.iter() {
