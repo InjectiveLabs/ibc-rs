@@ -346,8 +346,6 @@ impl CosmosSdkChain {
                 sr.gas_info.map_or(self.max_gas(), |g| g.gas_used)
             });
 
-        println!("estimated_gas - {}, self.max_gas() - {}", estimated_gas, self.max_gas());
-
         if estimated_gas > self.max_gas() {
             return Err(Error::tx_simulate_gas_estimate_exceeded(
                 self.id().clone(),
@@ -520,7 +518,7 @@ impl CosmosSdkChain {
     }
 
     fn account(&mut self) -> Result<&mut BaseAccount, Error> {
-        if self.account == None {        
+        if self.account == None {
             if self.config.is_ethermint {
                 let account = self.block_on(query_eth_account(self, self.key()?.account))?;
 
@@ -552,8 +550,7 @@ impl CosmosSdkChain {
     }
 
     fn signer(&self, sequence: u64) -> Result<SignerInfo, Error> {
-        let pk_type;
-        
+        let pk_type;        
         if self.config.is_ethermint {
             pk_type = "/injective.crypto.v1beta1.ethsecp256k1.PubKey".to_string();
         } else {
@@ -742,14 +739,13 @@ impl Chain for CosmosSdkChain {
     fn init_light_client(&self) -> Result<Box<dyn LightClient<Self>>, Error> {
         use tendermint_light_client::types::PeerId;
 
-        crate::time!("init_light_client");
-        
+        crate::time!("init_light_client");        
         let peer_id: PeerId = self
             .rt
             .block_on(self.rpc_client.status())
             .map(|s| s.node_info.id)
             .map_err(|e| Error::rpc(self.config.rpc_addr.clone(), e))?;
-        
+
         let light_client = TmLightClient::from_config(&self.config, peer_id)?;
 
         Ok(Box::new(light_client))
@@ -799,7 +795,7 @@ impl Chain for CosmosSdkChain {
     /// then it returns error.
     /// TODO - more work is required here for a smarter split maybe iteratively accumulating/ evaluating
     /// msgs in a Tx until any of the max size, max num msgs, max fee are exceeded.
-    fn send_msgs(&mut self, proto_msgs: Vec<Any>) -> Result<Vec<IbcEvent>, Error> {        
+    fn send_msgs(&mut self, proto_msgs: Vec<Any>) -> Result<Vec<IbcEvent>, Error> {
         crate::time!("send_msgs");
 
         if proto_msgs.is_empty() {
@@ -810,7 +806,7 @@ impl Chain for CosmosSdkChain {
         let mut n = 0;
         let mut size = 0;
         let mut msg_batch = vec![];
-        for msg in proto_msgs.iter() {            
+        for msg in proto_msgs.iter() {  
             msg_batch.push(msg.clone());
 
             let mut buf = Vec::new();

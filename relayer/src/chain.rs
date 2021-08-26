@@ -197,7 +197,7 @@ pub trait Chain: Sized {
     ) -> Result<ChannelEnd, Error>;
 
     // TODO: Introduce a newtype for the module version string
-    fn query_module_version(&self, port_id: &PortId) -> String {        
+    fn query_module_version(&self, port_id: &PortId) -> String {
         // TODO - query the chain, currently hardcoded
         if port_id.as_str() == "transfer" {
             "ics20-1".to_string()

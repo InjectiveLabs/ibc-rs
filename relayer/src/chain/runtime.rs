@@ -23,7 +23,7 @@ use ibc::{
     },
     ics23_commitment::commitment::CommitmentPrefix,
     ics24_host::identifier::{ChannelId, ClientId, ConnectionId, PortId},
-    proofs::Proofs,    
+    proofs::Proofs,
     query::{QueryBlockRequest, QueryTxRequest},
     signer::Signer,
     Height,
@@ -95,7 +95,7 @@ impl<C: Chain + Send + 'static> ChainRuntime<C> {
     pub fn spawn(
         config: ChainConfig,
         rt: Arc<TokioRuntime>,
-    ) -> Result<Box<dyn ChainHandle>, Error> {        
+    ) -> Result<Box<dyn ChainHandle>, Error> {
         // Similar to `from_config`.
         let chain = C::bootstrap(config, rt.clone())?;
 
@@ -104,7 +104,7 @@ impl<C: Chain + Send + 'static> ChainRuntime<C> {
 
         // Start the event monitor
         let (event_batch_rx, tx_monitor_cmd) = chain.init_event_monitor(rt.clone())?;
-        
+
         // Instantiate & spawn the runtime
         let (handle, _) = Self::init(chain, light_client, event_batch_rx, tx_monitor_cmd, rt);
 
@@ -118,12 +118,12 @@ impl<C: Chain + Send + 'static> ChainRuntime<C> {
         event_receiver: EventReceiver,
         tx_monitor_cmd: TxMonitorCmd,
         rt: Arc<TokioRuntime>,
-    ) -> (Box<dyn ChainHandle>, thread::JoinHandle<()>) {        
+    ) -> (Box<dyn ChainHandle>, thread::JoinHandle<()>) {
         let chain_runtime = Self::new(chain, light_client, event_receiver, tx_monitor_cmd, rt);
-        
+
         // Get a handle to the runtime
         let handle = chain_runtime.handle();
-        
+
         // Spawn the runtime & return
         let id = handle.id();
         let thread = thread::spawn(move || {
